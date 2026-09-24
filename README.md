@@ -87,7 +87,7 @@ Exports: `generatePuzzle`, `solve`, `isValidSolution`, `findConflicts`, `checkRe
 
 - Tap a cell to cycle empty, X, pumpkin, empty.
 - Drag across cells to paint X's. Starting a drag on an X erases instead.
-- **Auto-X** fills X's in a new pumpkin's row, column, patch and 8 neighbours.
+- **Auto-X** fills X's in a new pumpkin's row, column, patch and 8 neighbours. Remove the pumpkin and those X's go too, unless another pumpkin still rules the cell out. X's you placed yourself are never removed.
 - **Undo** (or Ctrl/Cmd+Z), **Clear**, **Hint** (places one correct pumpkin), **New**.
 - Pumpkins that break a rule shake once and turn red.
 - A row, column or patch sweeps with light when every cell in it is decided (one pumpkin, X's everywhere else, no clashes).

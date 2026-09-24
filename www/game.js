@@ -108,6 +108,7 @@ let n = 6;
 let cells = new Uint8Array(0);
 let hinted = new Uint8Array(0);
 let seq = new Uint32Array(0); // placement order of pumpkins, for the win light-up
+let autoX = new Uint8Array(0); // 1 where the X was placed by auto-X, not by the player
 let seqCounter = 0;
 let undoStack = [];
 let won = false;
@@ -222,6 +223,7 @@ function startPuzzle(size, seed, saved = null) {
   cells = new Uint8Array(n * n);
   hinted = new Uint8Array(n * n);
   seq = new Uint32Array(n * n);
+  autoX = new Uint8Array(n * n);
   seqCounter = 0;
   undoStack = [];
   won = false;
@@ -232,6 +234,7 @@ function startPuzzle(size, seed, saved = null) {
     cells = Uint8Array.from(saved.cells);
     if (saved.hinted?.length === n * n) hinted = Uint8Array.from(saved.hinted);
     if (saved.seq?.length === n * n) seq = Uint32Array.from(saved.seq);
+    if (saved.autoX?.length === n * n) autoX = Uint8Array.from(saved.autoX);
     seqCounter = Math.max(0, ...seq);
     hintsUsed = saved.hintsUsed || 0;
     timer.acc = saved.elapsed || 0;
@@ -274,6 +277,7 @@ function save() {
     seed: puzzle.seed,
     cells: [...cells],
     hinted: [...hinted],
+    autoX: [...autoX],
     seq: [...seq],
     hintsUsed,
     elapsed: elapsed(),
@@ -440,7 +444,7 @@ function feedback(conflicts) {
 // ---------- Moves ----------
 
 function snapshot() {
-  return { cells: cells.slice(), hinted: hinted.slice(), seq: seq.slice(), hintsUsed };
+  return { cells: cells.slice(), hinted: hinted.slice(), seq: seq.slice(), autoX: autoX.slice(), hintsUsed };
 }
 
 function pushHistory(snap) {
@@ -453,33 +457,50 @@ function sameCells(a, b) {
   return true;
 }
 
+// True if a pumpkin at cell p rules out cell j (same row, column or region, or touching).
+function rulesOut(p, j) {
+  const pr = Math.floor(p / n);
+  const pc = p % n;
+  const r = Math.floor(j / n);
+  const c = j % n;
+  return pr === r || pc === c || puzzle.regions[pr][pc] === puzzle.regions[r][c] || (Math.abs(pr - r) <= 1 && Math.abs(pc - c) <= 1);
+}
+
+const chebyshev = (a, b) => Math.max(Math.abs(Math.floor(a / n) - Math.floor(b / n)), Math.abs((a % n) - (b % n)));
+
 // X out every empty cell a pumpkin rules out. Returns the cells marked, nearest first.
 function autoMark(i) {
-  const r = Math.floor(i / n);
-  const c = i % n;
-  const region = puzzle.regions[r][c];
   const marked = [];
   for (let j = 0; j < cells.length; j++) {
-    if (j === i || cells[j] !== EMPTY) continue;
-    const rr = Math.floor(j / n);
-    const cc = j % n;
-    if (rr === r || cc === c || puzzle.regions[rr][cc] === region || (Math.abs(rr - r) <= 1 && Math.abs(cc - c) <= 1)) {
-      cells[j] = MARK;
-      marked.push(j);
-    }
+    if (j === i || cells[j] !== EMPTY || !rulesOut(i, j)) continue;
+    cells[j] = MARK;
+    autoX[j] = 1;
+    marked.push(j);
   }
-  const dist = (j) => Math.max(Math.abs(Math.floor(j / n) - r), Math.abs((j % n) - c));
-  return marked.sort((a, b) => dist(a) - dist(b));
+  return marked.sort((a, b) => chebyshev(a, i) - chebyshev(b, i));
+}
+
+// Take back auto-placed X's that no pumpkin on the board rules out any more
+// (their pumpkin was removed). X's the player placed are never touched.
+// They ripple away from `origin`, the cell whose pumpkin went.
+function pruneAutoMarks(origin = null) {
+  for (let j = 0; j < cells.length; j++) if (cells[j] !== MARK) autoX[j] = 0;
+  const pumpkins = [];
+  for (let p = 0; p < cells.length; p++) if (cells[p] === PUMPKIN) pumpkins.push(p);
+  let freed = 0;
+  for (let j = 0; j < cells.length; j++) {
+    if (!autoX[j] || pumpkins.some((p) => rulesOut(p, j))) continue;
+    cells[j] = EMPTY;
+    autoX[j] = 0;
+    updateCell(j, true, origin == null ? 0 : chebyshev(origin, j) * 20);
+    freed++;
+  }
+  if (freed) sound.untick();
 }
 
 // Auto-X marks ripple outward from the pumpkin.
 function rippleMarks(marked, origin) {
-  const r = Math.floor(origin / n);
-  const c = origin % n;
-  for (const j of marked) {
-    const d = Math.max(Math.abs(Math.floor(j / n) - r), Math.abs((j % n) - c));
-    updateCell(j, true, 120 + d * 20);
-  }
+  for (const j of marked) updateCell(j, true, 120 + chebyshev(origin, j) * 20);
 }
 
 function placePumpkin(i) {
@@ -494,7 +515,10 @@ function cycle(i) {
     return;
   }
   pushHistory(snapshot());
+  const wasPumpkin = cells[i] === PUMPKIN;
   cells[i] = (cells[i] + 1) % 3;
+  autoX[i] = 0; // anything the player touches is theirs
+  if (wasPumpkin) pruneAutoMarks(i);
   if (cells[i] === PUMPKIN) {
     placePumpkin(i);
     sound.thunk();
@@ -520,6 +544,7 @@ function undo() {
   cells = snap.cells;
   hinted = snap.hinted;
   seq = snap.seq;
+  autoX = snap.autoX;
   hintsUsed = snap.hintsUsed;
   sound.untick();
   // Undo shouldn't shake or sweep: resync feedback state silently.
@@ -533,6 +558,7 @@ function clearBoard() {
   pushHistory(snapshot());
   cells.fill(EMPTY);
   hinted.fill(0);
+  autoX.fill(0);
   sound.untick();
   commit();
 }
@@ -557,6 +583,7 @@ function hint() {
     if (!wrong.length) return;
     pushHistory(snapshot());
     cells[wrong[0]] = MARK;
+    pruneAutoMarks(wrong[0]);
     sound.pluck();
     toast('Removed a pumpkin that doesn’t belong');
   }
@@ -616,6 +643,7 @@ function paintBatch(list) {
     if (drag.mode === 'paint' && from === EMPTY) cells[i] = MARK;
     else if (drag.mode === 'erase' && from === MARK) cells[i] = EMPTY;
     else continue;
+    autoX[i] = 0;
     updateCell(i, true, k * 20);
     if (drag.mode === 'paint') sound.tick(k * 0.02);
     else if (k === 0) sound.untick();
