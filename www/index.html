@@ -19,6 +19,40 @@
   <script type="module" src="game.js"></script>
 </head>
 <body>
+  <svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <radialGradient id="pp-body" cx=".4" cy=".28" r=".85">
+        <stop offset="0" stop-color="#ffc06a"/><stop offset=".42" stop-color="#f2801f"/><stop offset="1" stop-color="#8f370a"/>
+      </radialGradient>
+      <radialGradient id="pp-side" cx=".5" cy=".3" r=".85">
+        <stop offset="0" stop-color="#ec8c35"/><stop offset=".5" stop-color="#c25a14"/><stop offset="1" stop-color="#6a2806"/>
+      </radialGradient>
+      <radialGradient id="pp-body-bad" cx=".4" cy=".28" r=".85">
+        <stop offset="0" stop-color="#ff9a86"/><stop offset=".42" stop-color="#e23a2c"/><stop offset="1" stop-color="#6e0f09"/>
+      </radialGradient>
+      <radialGradient id="pp-side-bad" cx=".5" cy=".3" r=".85">
+        <stop offset="0" stop-color="#e8624f"/><stop offset=".5" stop-color="#ad2118"/><stop offset="1" stop-color="#520b06"/>
+      </radialGradient>
+      <linearGradient id="pp-stem" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#a5bb52"/><stop offset=".5" stop-color="#617828"/><stop offset="1" stop-color="#2f3b0d"/>
+      </linearGradient>
+      <radialGradient id="pp-hi">
+        <stop offset="0" stop-color="#fff6e0" stop-opacity=".8"/><stop offset="1" stop-color="#fff6e0" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="pp-face" cx=".5" cy=".6" r=".65">
+        <stop offset="0" stop-color="#fff4a8"/><stop offset=".45" stop-color="#ffbd2e"/><stop offset="1" stop-color="#d55a0c"/>
+      </radialGradient>
+      <radialGradient id="pp-face-lit" cx=".5" cy=".6" r=".65">
+        <stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#fff07a"/><stop offset="1" stop-color="#ffa51f"/>
+      </radialGradient>
+      <linearGradient id="pp-bone" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fffaf0"/><stop offset=".55" stop-color="#e4d9bf"/><stop offset="1" stop-color="#a99b7b"/>
+      </linearGradient>
+      <linearGradient id="pp-twig" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#7d5a3a"/><stop offset=".55" stop-color="#4c331e"/><stop offset="1" stop-color="#2a1a0e"/>
+      </linearGradient>
+    </defs>
+  </svg>
   <main class="app">
     <header class="top">
       <h1>
@@ -32,6 +66,9 @@
         Pumpkin Patch
       </h1>
       <div class="stats">
+        <button type="button" id="mute" class="mute" aria-pressed="false" aria-label="Mute sound">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M4 9h4l5-4v14l-5-4H4z"/><path class="waves" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/><path class="cross" d="M16 9l6 6M22 9l-6 6"/></svg>
+        </button>
         <div class="stat"><span class="label">Time</span><span id="timer" class="value">0:00</span></div>
         <div class="stat"><span class="label">Best</span><span id="best" class="value">&ndash;</span></div>
       </div>
@@ -39,7 +76,9 @@
 
     <div class="sizes" role="radiogroup" aria-label="Grid size"></div>
 
-    <div id="board" class="board" role="grid" aria-label="Pumpkin patch"></div>
+    <div class="tray">
+      <div id="board" class="board" role="grid" aria-label="Pumpkin patch"></div>
+    </div>
 
     <div class="toolbar">
       <button type="button" id="undo" class="tool">
@@ -60,11 +99,21 @@
       </button>
     </div>
 
-    <div class="options">
+    <div class="options" role="group" aria-label="Settings">
       <label class="toggle">
         <input type="checkbox" id="autox" role="switch">
         <span class="track" aria-hidden="true"></span>
-        <span>Auto-X <small>marks cells a pumpkin rules out</small></span>
+        <span>Auto-X <small>fills in X&apos;s for you</small></span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="sound" role="switch">
+        <span class="track" aria-hidden="true"></span>
+        <span>Sound <small>ticks and thunks</small></span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="haptics" role="switch">
+        <span class="track" aria-hidden="true"></span>
+        <span>Haptics <small class="on-note">buzz on taps</small><small class="off-note">not supported on this device</small></span>
       </label>
     </div>
 
@@ -74,7 +123,7 @@
         <li>Place exactly one pumpkin in every row, every column and every coloured patch.</li>
         <li>Pumpkins can't touch each other, not even diagonally.</li>
         <li>Tap a cell to cycle: empty, X, pumpkin. Drag across cells to paint X's (start on an X to erase them).</li>
-        <li>Clashing pumpkins glow red. Hints place a correct pumpkin but don't count toward your best time.</li>
+        <li>Clashing pumpkins shake and turn red. A row, column or patch glows once every cell in it is decided. Hints place a correct pumpkin but don't count toward your best time.</li>
       </ul>
     </details>
 

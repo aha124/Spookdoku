@@ -12,7 +12,8 @@ Plain HTML, CSS and ES modules. No build step, no runtime dependencies, no exter
 www/
   index.html       page shell
   styles.css       dark theme, board, win animation
-  game.js          UI: rendering, touch input, timer, storage
+  game.js          UI: rendering, touch input, animation hooks, timer, storage
+  fx.js            synthesized sound (Web Audio) and haptics (navigator.vibrate)
   puzzle.js        generator + solver (pure logic, no DOM, ES module exports)
   manifest.json    PWA manifest (install to home screen)
   sw.js            service worker for offline play
@@ -88,6 +89,19 @@ Exports: `generatePuzzle`, `solve`, `isValidSolution`, `findConflicts`, `checkRe
 - Drag across cells to paint X's. Starting a drag on an X erases instead.
 - **Auto-X** fills X's in a new pumpkin's row, column, patch and 8 neighbours.
 - **Undo** (or Ctrl/Cmd+Z), **Clear**, **Hint** (places one correct pumpkin), **New**.
-- Pumpkins that break a rule turn red.
+- Pumpkins that break a rule shake once and turn red.
+- A row, column or patch sweeps with light when every cell in it is decided (one pumpkin, X's everywhere else, no clashes).
+
+## Feel
+
+Everything tactile is drawn and synthesized in code. There are no image or audio files and no libraries.
+
+- The board is a wooden tray (CSS gradients plus an inline SVG `feTurbulence` noise) with an inner shadow. Tiles are bevelled and dip 1.5px while pressed.
+- Pumpkins are layered SVG with gradients, ribs, a highlight and a flickering candle glow. They drop in with squash and stretch, and shrink away when removed. X marks are crossed bones (twigs on the pale patches) that pop in, rippling 20ms apart when you swipe.
+- Sounds come from Web Audio: a wooden tick for X, a hollow thunk for a pumpkin, a low dissonant tone for a clash, and a chime when you win. Haptics use `navigator.vibrate` where the browser supports it (Android Chrome yes, iOS Safari no).
+- Sound and haptics each have a toggle, and the header has a mute button. All three settings are remembered.
+- With `prefers-reduced-motion`, animations become short fades and nothing shakes or flickers.
+
+Animations only change `transform` and `opacity`. While you drag, hit-testing is plain arithmetic on the board's position (no `elementFromPoint`), and DOM updates are batched into one per animation frame.
 
 The timer pauses when the tab is hidden. Best times are kept per grid size in `localStorage`; solves that used a hint don't count. An unfinished puzzle is saved and restored on reload. If storage is blocked (private browsing, disabled storage), the game still works, it just forgets.

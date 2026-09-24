@@ -1,12 +1,13 @@
 // Offline support. Network first so updates show up immediately when online;
 // falls back to the cached copy when there's no connection.
-const CACHE = 'pumpkin-patch-v1';
+const CACHE = 'pumpkin-patch-v2';
 const ASSETS = [
   './',
   'index.html',
   'styles.css',
   'game.js',
   'puzzle.js',
+  'fx.js',
   'manifest.json',
   'icons/icon.svg',
   'icons/icon-192.png',
