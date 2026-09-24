@@ -1,0 +1,15 @@
+{
+  "name": "pumpkin-patch",
+  "version": "1.0.0",
+  "description": "A Halloween take on the Queens / Star Battle logic puzzle. Mobile-first web game.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node scripts/serve.js",
+    "test": "node --test tests/puzzle.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
